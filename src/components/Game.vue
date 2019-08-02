@@ -100,7 +100,7 @@ export default {
 //CREATE TABLE enemies(id int, hp int, posX int, posY int)
   methods: {
     getEnemies: function() {
-      window.session.request(`SELECT * FROM enemies`).result().then((r)=>{
+      window.session.sendTransaction(`SELECT * FROM enemies`).then((r)=>{
         // console.log("syncing enemies")
         try {
           var val = r.asString().split("\n").map(i => i.split(", "))
@@ -137,7 +137,7 @@ export default {
     },
     getPlayers: function() {
       // console.log("syncing players")
-      window.session.request(`SELECT * FROM players`).result().then((r)=>{
+      window.session.sendTransaction(`SELECT * FROM players`).then((r)=>{
         try {
           var val = r.asString().split("\n").map(i => i.split(", "))
           val.splice(0, 1)
@@ -165,7 +165,7 @@ export default {
     },
     openMarket: function() {
       this.marketModal = true
-      window.session.request(`SELECT * FROM orders`).result().then((r) => {
+      window.session.sendTransaction(`SELECT * FROM orders`).then((r) => {
         var val = r.asString().split("\n").map(i => i.split(", "))
         val.splice(0, 1)
         this.orders = val
@@ -174,7 +174,7 @@ export default {
     buyItem: function(o){
       window.session.request(`INSERT INTO weapeons VALUES(${randomInteger(500, 2000000)}, ${o[2]}, 0, ${this.playerId})`)
       
-      window.session.request(`SELECT * FROM users`).result().then((r) => {
+      window.session.sendTransaction(`SELECT * FROM users`).then((r) => {
         var val = r.asString().split("\n").map(i => i.split(", "))
         val.splice(0, 1)
         window.session.request(`UPDATE users SET cash = ${parseInt(val.filter(i=>parseInt(i[0])==o[3])[0][2]) + parseInt(o[1])} WHERE id = ${o[3]}`)
@@ -185,7 +185,7 @@ export default {
       this.money -= o[1]
     },
     getItems: function() {
-      window.session.request(`SELECT cash FROM users WHERE id = ${this.playerId}`).result().then((r) => {
+      window.session.sendTransaction(`SELECT cash FROM users WHERE id = ${this.playerId}`).then((r) => {
         let money = parseInt(r.asString().split("\n")[1])
         if (!isNaN(money) && !isNullOrUndefined(money)) {
           this.money = money
@@ -196,7 +196,7 @@ export default {
         }
         console.log(`cash for ${this.playerId} is ${this.money}`)
       })
-      window.session.request(`SELECT * FROM weapeons WHERE userId = ${this.playerId}`).result().then((r) => {
+      window.session.sendTransaction(`SELECT * FROM weapeons WHERE userId = ${this.playerId}`).then((r) => {
         if(r.asString().split("\n")[1]){
           var val = r.asString().split("\n").map(i => i.split(", "))
           val.splice(0, 1)
@@ -290,8 +290,8 @@ export default {
   },
   mounted(){
     let privateKey = "569ae4fed4b0485848d3cf9bbe3723f5783aadd0d5f6fd83e18b45ac22496859"; // Authorization private key
-    let contract = "0xeFF91455de6D4CF57C141bD8bF819E5f873c1A01";                         // Fluence contract address
-    let appId = 267;                                                                      // Deployed database id
+    let contract = "0xe01690f60E08207Fa29F9ef98fA35e7fB7A12A96";                         // Fluence contract address
+    let appId = 75;                                                                      // Deployed database id
     let ethereumUrl = "http://geth.fluence.one:8545";                                    // Ethereum light node URL
 
     fluence.connect(contract, appId, ethereumUrl, privateKey).then((s) => {
