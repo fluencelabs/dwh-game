@@ -100,8 +100,8 @@ export default {
 //CREATE TABLE enemies(id int, hp int, posX int, posY int)
   methods: {
     getEnemies: function() {
-      window.session.sendTransaction(`SELECT * FROM enemies`).then((r)=>{
-        // console.log("syncing enemies")
+      window.session.request(`SELECT * FROM enemies`).then((r)=>{
+        console.log("syncing enemies: " + r.asString())
         try {
           var val = r.asString().split("\n").map(i => i.split(", "))
           val.splice(0, 1)
@@ -110,7 +110,7 @@ export default {
             let id = randomInteger(500, 2000000)
             let x = Math.floor(randomInteger(50, window.innerWidth - 50))
             let y = Math.floor(randomInteger(50, window.innerHeight - 50))
-            window.session.request(`INSERT INTO enemies VALUES(${id}, 100, ${x}, ${y})`).then((r) => {
+            window.session.requestAsync(`INSERT INTO enemies VALUES(${id}, 100, ${x}, ${y})`).then((r) => {
               this.enemies.push({
                 left: x,
                 top: y,
@@ -136,8 +136,8 @@ export default {
       
     },
     getPlayers: function() {
-      // console.log("syncing players")
-      window.session.sendTransaction(`SELECT * FROM players`).then((r)=>{
+      console.log("syncing players")
+      window.session.request(`SELECT * FROM players`).then((r)=>{
         try {
           var val = r.asString().split("\n").map(i => i.split(", "))
           val.splice(0, 1)
@@ -165,38 +165,38 @@ export default {
     },
     openMarket: function() {
       this.marketModal = true
-      window.session.sendTransaction(`SELECT * FROM orders`).then((r) => {
+      window.session.request(`SELECT * FROM orders`).then((r) => {
         var val = r.asString().split("\n").map(i => i.split(", "))
         val.splice(0, 1)
         this.orders = val
       })
     },
     buyItem: function(o){
-      window.session.request(`INSERT INTO weapeons VALUES(${randomInteger(500, 2000000)}, ${o[2]}, 0, ${this.playerId})`)
+      window.session.requestAsync(`INSERT INTO weapeons VALUES(${randomInteger(500, 2000000)}, ${o[2]}, 0, ${this.playerId})`)
       
-      window.session.sendTransaction(`SELECT * FROM users`).then((r) => {
+      window.session.request(`SELECT * FROM users`).then((r) => {
         var val = r.asString().split("\n").map(i => i.split(", "))
         val.splice(0, 1)
-        window.session.request(`UPDATE users SET cash = ${parseInt(val.filter(i=>parseInt(i[0])==o[3])[0][2]) + parseInt(o[1])} WHERE id = ${o[3]}`)
-        window.session.request(`UPDATE users SET cash = ${val.filter(i=>parseInt(i[0])==this.playerId)[0][2] - o[1]} WHERE id = ${this.playerId}`)
+        window.session.requestAsync(`UPDATE users SET cash = ${parseInt(val.filter(i=>parseInt(i[0])==o[3])[0][2]) + parseInt(o[1])} WHERE id = ${o[3]}`)
+        window.session.requestAsync(`UPDATE users SET cash = ${val.filter(i=>parseInt(i[0])==this.playerId)[0][2] - o[1]} WHERE id = ${this.playerId}`)
       })
       console.log(o[0])
-      window.session.request(`DELETE FROM orders WHERE id = ${o[0]}`)
+      window.session.requestAsync(`DELETE FROM orders WHERE id = ${o[0]}`)
       this.money -= o[1]
     },
     getItems: function() {
-      window.session.sendTransaction(`SELECT cash FROM users WHERE id = ${this.playerId}`).then((r) => {
+      window.session.request(`SELECT cash FROM users WHERE id = ${this.playerId}`).then((r) => {
         let money = parseInt(r.asString().split("\n")[1])
         if (!isNaN(money) && !isNullOrUndefined(money)) {
           this.money = money
         } else {
           console.log(`creating new player ${this.playerId}`)
-          window.session.request(`INSERT INTO users VALUES (${this.playerId}, ${this.playerId}, ${this.money})`)
-          window.session.request(`INSERT INTO players VALUES (${this.playerId}, 0, 0, 0)`)
+          window.session.requestAsync(`INSERT INTO users VALUES (${this.playerId}, ${this.playerId}, ${this.money})`)
+          window.session.requestAsync(`INSERT INTO players VALUES (${this.playerId}, 0, 0, 0)`)
         }
         console.log(`cash for ${this.playerId} is ${this.money}`)
       })
-      window.session.sendTransaction(`SELECT * FROM weapeons WHERE userId = ${this.playerId}`).then((r) => {
+      window.session.request(`SELECT * FROM weapeons WHERE userId = ${this.playerId}`).then((r) => {
         if(r.asString().split("\n")[1]){
           var val = r.asString().split("\n").map(i => i.split(", "))
           val.splice(0, 1)
@@ -207,8 +207,8 @@ export default {
     },
     sellItem: function() {
       let iInd = this.marketSellSelected
-      window.session.request(`INSERT INTO orders VALUES(${randomInteger(500, 2000000)}, ${this.marketSellPrice}, ${this.items[iInd][1]}, ${this.playerId})`)
-      window.session.request(`DELETE FROM weapeons WHERE id = ${this.items[iInd][0]}`)
+      window.session.requestAsync(`INSERT INTO orders VALUES(${randomInteger(500, 2000000)}, ${this.marketSellPrice}, ${this.items[iInd][1]}, ${this.playerId})`)
+      window.session.requestAsync(`DELETE FROM weapeons WHERE id = ${this.items[iInd][0]}`)
       this.marketSellPrice = null
       this.marketSellSelected = null
       this.items.splice(iInd, 1)
@@ -219,7 +219,7 @@ export default {
         let num = randomInteger(1,4)
         this.show_weapeon = num
         setTimeout(()=>this.show_weapeon = null, 3000)
-        window.session.request(`INSERT INTO weapeons VALUES(${randomInteger(500, 2000000)}, ${num}, 0, ${this.playerId})`)
+        window.session.requestAsync(`INSERT INTO weapeons VALUES(${randomInteger(500, 2000000)}, ${num}, 0, ${this.playerId})`)
         this.items.push(num)
       }else {
         alert("Not enough cash. Need 20$")
@@ -247,9 +247,9 @@ export default {
               this.bullets.splice(i, 1)
               if(v.hp - 10 <= 0){
                 this.enemies.splice(j, 1)
-                window.session.request(`DELETE FROM ENEMIES WHERE id = ${v.id}`)
+                window.session.requestAsync(`DELETE FROM ENEMIES WHERE id = ${v.id}`)
                 this.money += 10
-                window.session.request(`UPDATE users SET cash = ${this.money} WHERE id = ${this.playerId}`)
+                window.session.requestAsync(`UPDATE users SET cash = ${this.money} WHERE id = ${this.playerId}`)
 
                 if (this.money >= this.level * 100 + 1000) {
                   if (this.level < 5) {
@@ -265,7 +265,7 @@ export default {
                     let id = randomInteger(500, 2000000)
                     let x = Math.floor(randomInteger(50, window.innerWidth - 50))
                     let y = Math.floor(randomInteger(50, window.innerHeight - 50))
-                    window.session.request(`INSERT INTO enemies VALUES(${id}, 100, ${x}, ${y})`)
+                    window.session.requestAsync(`INSERT INTO enemies VALUES(${id}, 100, ${x}, ${y})`)
                     this.enemies.push({
                       left: x,
                       top: y,
@@ -276,7 +276,7 @@ export default {
                 }
               }else {
                 v.hp -= 10
-                window.session.request(`UPDATE enemies SET hp = ${v.hp - 10} WHERE id = ${v.id}`)
+                window.session.requestAsync(`UPDATE enemies SET hp = ${v.hp - 10} WHERE id = ${v.id}`)
               }
             }
           })
@@ -291,12 +291,16 @@ export default {
   mounted(){
     let privateKey = "569ae4fed4b0485848d3cf9bbe3723f5783aadd0d5f6fd83e18b45ac22496859"; // Authorization private key
     let contract = "0xe01690f60E08207Fa29F9ef98fA35e7fB7A12A96";                         // Fluence contract address
-    let appId = 75;                                                                      // Deployed database id
+    let appId = 77;                                                                      // Deployed database id
     let ethereumUrl = "http://geth.fluence.one:8545";                                    // Ethereum light node URL
 
     fluence.connect(contract, appId, ethereumUrl, privateKey).then((s) => {
         console.log("Session created");
         window.session = s;
+        s.requestAsync("CREATE TABLE weapeons(id int, type int, level int, userId int)");
+        s.requestAsync("CREATE TABLE orders(id int, price int, type int, userId int)");
+        s.requestAsync("CREATE TABLE enemies(id int, hp int, posX int, posY int)");
+        s.requestAsync("CREATE TABLE players(id int, posX int, posY int, angle int)");
         this.getItems()
     });
     setTimeout(()=>{
@@ -341,7 +345,7 @@ export default {
         }
       }
       //CREATE TABLE players(id int, posX int, posY int, angle int)
-      window.session.request(`UPDATE players SET posX = ${this.left}, posY = ${this.top}, angle = ${pRad} WHERE id = ${this.playerId}`)
+      window.session.requestAsync(`UPDATE players SET posX = ${this.left}, posY = ${this.top}, angle = ${pRad} WHERE id = ${this.playerId}`)
     })
     this.getEnemies()
     this.getPlayers()
